@@ -41,5 +41,19 @@ def insert_data(args, db_name="test",collection_name="test"):
         raise e
 
 
+def query_data(args, db_name="test", collection_name="test"):
+
+    try:
+        db_con = get_db(db_name)
+        collection = db_con[collection_name]
+        query_result = list(collection.find(args))
+    except Exception, e:
+        print "query data failed", str(e)
+        raise e
+
+    return query_result
+
+
 if __name__ == "__main__":
     print insert_data({"a": 1})
+    print query_data({"a": 1})

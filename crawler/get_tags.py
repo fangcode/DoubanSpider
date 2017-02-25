@@ -44,7 +44,8 @@ def parse_tags(content):
                         "tag_name": tag_name,
                         "tag_url": tag_url,
                         "tag_code": tag_code,
-                        "cate": cate_name
+                        "cate": cate_name,
+                        "status": 0
                     }
                     tags_result.append(each_tag_dict)
     except Exception, e:

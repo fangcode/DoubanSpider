@@ -16,7 +16,7 @@ FINISHED_COUNT = 20
 
 def get_tags():
 
-    condition = {"status": 1}
+    condition = {"status": 0}
     db_name = "douban"
     collection_name = "tag"
 
@@ -48,7 +48,12 @@ def parse_booklist(tag_content, tag_name):
         for each_tag in tag_list:
             book_url = each_tag.xpath("./div[1]/a/@href")[0]
             book_name = each_tag.xpath("./div[contains(@class, 'info')]/h2/a/@title")[0]
-            rate_num = each_tag.xpath(".//span[contains(@class, 'rating_nums')]/text()")[0]
+            try:
+                rate_num = each_tag.xpath(".//span[contains(@class, 'rating_nums')]/text()")[0]
+            except Exception, e:
+                print "parse rate num failed", str(e)
+                rate_num = "0.0"
+
             booklist.append({
                 "book_url": book_url,
                 "book_name": book_name,
@@ -106,12 +111,11 @@ def crawl_booklist_by_tag(tag_info):
     next_url = tag_url
     # crawl tag content
     while True:
-        print next_url
-
         for page_index in range(3):
             try:
                 # sleep 6 ~ 12 seconds before crawling each page
                 time.sleep(random.randint(6, 12))
+                print next_url
                 req = s.get(next_url)
                 tag_content = req.text
                 finished_tag, next_url, each_booklist, each_side_tag_list = parse_booklist(tag_content, tag_name)
@@ -168,7 +172,7 @@ def crawl_booklist():
         raise e
 
     # crawl each tag, if success then continue to next, else try another two times until succeed
-    for each_tag_info in tag_info_list[:1]:
+    for each_tag_info in tag_info_list:
         print "crawling tag:", each_tag_info
 
         for times in range(3):

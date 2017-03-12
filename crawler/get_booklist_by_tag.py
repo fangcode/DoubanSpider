@@ -3,8 +3,11 @@
 import requests
 from common.mongo_client import query_data
 from common.mongo_client import insert_data
+from common.mongo_client import update_item
 from lxml import html
 import traceback
+import time
+import random
 
 
 FINISHED_TAG = "没有找到符合条件的图书"
@@ -13,7 +16,7 @@ FINISHED_COUNT = 20
 
 def get_tags():
 
-    condition = {"status": 0}
+    condition = {"status": 1}
     db_name = "douban"
     collection_name = "tag"
 
@@ -26,7 +29,7 @@ def get_tags():
     return result
 
 
-def parse_booklist(tag_content):
+def parse_booklist(tag_content, tag_name):
 
     booklist = list()
     side_tag_list = list()
@@ -34,10 +37,10 @@ def parse_booklist(tag_content):
     finished_tag = False
 
     try:
-        if FINISHED_TAG in tag_content:
+        if FINISHED_TAG in tag_content.encode("utf-8"):
             return finished_tag, next_url, booklist, side_tag_list
 
-        root = html.fromstring(content)
+        root = html.fromstring(tag_content)
 
         # parse book information list
         tag_list = root.xpath("//ul[contains(@class, 'subject-list')][1]/li")
@@ -50,6 +53,7 @@ def parse_booklist(tag_content):
                 "book_url": book_url,
                 "book_name": book_name,
                 "rate_num": rate_num,
+                "tag_name": tag_name,
                 "status": 0
             })
 
@@ -79,6 +83,8 @@ def parse_booklist(tag_content):
             next_url = "https://book.douban.com" + next_url
         except Exception, e:
             print "parse next page url failed", str(e)
+            if len(booklist) <= FINISHED_COUNT:
+                finished_tag = True
 
     except Exception, e:
         traceback.print_exc(e)
@@ -88,41 +94,83 @@ def parse_booklist(tag_content):
 
 def crawl_booklist_by_tag(tag_info):
     booklist = list()
-
+    side_tag_list = list()
+    finished_tag = False
     tag_url = tag_info.get("tag_url")
+    tag_name = tag_info.get("tag_name")
 
     # create session
     s = requests.Session()
     s.get("https://book.douban.com/tag/?icn=index-nav")
 
     next_url = tag_url
-
     # crawl tag content
     while True:
         print next_url
 
         for page_index in range(3):
             try:
+                # sleep 6 ~ 12 seconds before crawling each page
+                time.sleep(random.randint(6, 12))
                 req = s.get(next_url)
                 tag_content = req.text
-                
-                return True
+                finished_tag, next_url, each_booklist, each_side_tag_list = parse_booklist(tag_content, tag_name)
+                booklist += each_booklist
+                side_tag_list += each_side_tag_list
+
+                if len(each_booklist) == FINISHED_COUNT or finished_tag:
+                    break
             except Exception, e:
-                print "crawling ", tag_url.encode("utf-8"), "failed"
+                print "crawling ", tag_url.encode("utf-8"), "failed", str(e)
                 continue
+
+        if finished_tag:
+            break
+
+    # insert data to mongodb
+    # step1: insert book list
+    for each_bookinfo in booklist:
+        try:
+            insert_data(each_bookinfo, db_name="douban", collection_name="booklist")
+        except Exception, e:
+            print "insert book info failed", str(e)
+            continue
+
+    # step2: insert new tags info
+    for each_tag in side_tag_list:
+        try:
+            insert_data(each_tag, db_name="douban", collection_name="tag")
+        except Exception, e:
+            print "insert side tag info failed", str(e)
+            continue
+
+    # step3: update current tag status
+    update_item_info = {
+        "tag_name": tag_info.get("tag_name")
+    }
+    op_info = {
+        "$set": {
+            "status": 1
+        },
+    }
+    update_item((update_item_info, op_info),
+                db_name="douban", collection_name="tag")
 
     return True
 
 
 def crawl_booklist():
-
+    # get tag info
     try:
         tag_info_list = get_tags()
     except Exception, e:
         print "get tags failed", str(e)
         raise e
 
+    # crawl each tag, if success then continue to next, else try another two times until succeed
     for each_tag_info in tag_info_list[:1]:
+        print "crawling tag:", each_tag_info
+
         for times in range(3):
             try:
                 crawl_flag = crawl_booklist_by_tag(each_tag_info)
@@ -130,10 +178,9 @@ def crawl_booklist():
                     break
             except Exception, e:
                 print "crawl tag failed", str(each_tag_info), str(e)
+                traceback.print_exc(e)
                 continue
 
 
 if __name__ == "__main__":
-    with open("book.html") as f:
-        content = f.read()
-        print parse_booklist(content)
+    crawl_booklist()

@@ -1,12 +1,12 @@
 # -*- coding:utf-8 -*-
 
 import requests
-from common.mongo_client import insert_data
 from lxml import html
+
+from common.mongo_client import insert_data
 
 
 def crawl_content(tag_url):
-
     try:
         r = requests.get(tag_url)
         tag_content = r.text
@@ -55,7 +55,6 @@ def parse_tags(content):
 
 
 def crawl_tag():
-
     tag_url = "https://book.douban.com/tag/?icn=index-nav"
 
     try:

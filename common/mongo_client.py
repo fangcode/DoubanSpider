@@ -5,6 +5,7 @@
 @date: 2017.02.25
 @desc: mongodb client
 """
+import pymongo
 from pymongo import MongoClient
 
 
@@ -29,15 +30,29 @@ def get_db(db_name="test"):
         raise e
 
 
-def insert_data(args, db_name="test",collection_name="test"):
+def insert_data(args, db_name="test", collection_name="test"):
 
     try:
         db_con = get_db(db_name)
         collection = db_con[collection_name]
         collection.insert(args)
         return True
+    except pymongo.errors.DuplicateKeyError:
+        print "duplicated keys error"
+        print args
     except Exception, e:
         print "insert data failed", str(e)
+        raise e
+
+
+def update_item(args, db_name="test", collection_name="test"):
+
+    try:
+        db_con = get_db(db_name)
+        collection = db_con[collection_name]
+        collection.update(args[0], args[1], upsert=False)
+    except Exception, e:
+        print "update item failed", str(e)
         raise e
 
 

@@ -75,6 +75,7 @@ def parse_booklist(tag_content, tag_name):
                     "tag_code": "0",
                     "cate": "NULL",
                     "status": 0,
+                    "user_status": 0,
                     "source": "side"
                 })
         except Exception, e:
@@ -128,7 +129,7 @@ def crawl_booklist_by_tag(tag_info):
                 print "crawling ", tag_url.encode("utf-8"), "failed", str(e)
                 continue
 
-        if finished_tag:
+        if finished_tag or len(next_url.strip()) < 1:
             break
 
     # insert data to mongodb

@@ -39,7 +39,6 @@ def insert_data(args, db_name="test", collection_name="test"):
         return True
     except pymongo.errors.DuplicateKeyError:
         print "duplicated keys error"
-        print args
     except Exception, e:
         print "insert data failed", str(e)
         raise e

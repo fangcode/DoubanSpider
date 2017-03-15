@@ -35,7 +35,7 @@ def insert_data(args, db_name="test", collection_name="test"):
     try:
         db_con = get_db(db_name)
         collection = db_con[collection_name]
-        collection.insert(args)
+        collection.insert(args, continue_on_error=True)
         return True
     except pymongo.errors.DuplicateKeyError:
         print "duplicated keys error"

@@ -1,5 +1,7 @@
 # -*- coding:utf-8 -*-
 
+import sys
+sys.path.append("../")
 import time
 import random
 import requests
@@ -14,7 +16,7 @@ TYPE_LIST = ["doings", "collections", "wishes"]
 
 def get_users():
 
-    condition = {"status": 0}
+    condition = {"user_status": 0}
     spec = {"book_url": 1, "_id": 0}
     db_name = "douban"
     collection_name = "booklist"
@@ -68,8 +70,6 @@ def parse_users(content, current_url):
     finished_status = False
 
     try:
-        with open("user.html", "w") as f:
-            f.write(content.encode("utf-8"))
         root = html.fromstring(content)
         user_ele_list = root.xpath("//div[contains(@class, 'sub_ins')][1]/table")
     except Exception, e:

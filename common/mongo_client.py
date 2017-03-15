@@ -56,12 +56,15 @@ def update_item(args, db_name="test", collection_name="test"):
         raise e
 
 
-def query_data(args, db_name="test", collection_name="test"):
+def query_data(args, spec={}, db_name="test", collection_name="test"):
 
     try:
         db_con = get_db(db_name)
         collection = db_con[collection_name]
-        query_result = list(collection.find(args))
+        if not spec:
+            query_result = list(collection.find(args))
+        else:
+            query_result = list(collection.find(args, spec))
     except Exception, e:
         print "query data failed", str(e)
         raise e
